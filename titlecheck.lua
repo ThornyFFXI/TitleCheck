@@ -1,12 +1,12 @@
 addon.author   = 'Thorny';
 addon.name     = 'TitleCheck';
 addon.desc     = 'Prints missing titles..';
-addon.version  = '1.0';
+addon.version  = '1.01';
 
 require ('common');
 local chat = require('chat')
 local recorder = require('recorder');
-local titleSet = T{};
+local masterList = T{};
 local titleToId = T{};
 local titleToNPC = T{};
 local playerData = T{
@@ -17,6 +17,7 @@ local playerData = T{
 };
 local forceVisible = false;
 local printEarned = false;
+local printUnearned = false;
 
 local function TryLoadFile(filePath)
     if not ashita.fs.exists(filePath) then
@@ -41,14 +42,14 @@ local function TryLoadFile(filePath)
 end
 
 local function LoadAllTitles()
-    titleSet = T{};
+    masterList = T{};
     local path = string.format('%saddons/%s/data/', AshitaCore:GetInstallPath(), addon.name);
     local contents = ashita.fs.get_directory(path, '.*\\.lua');
     for _,file in pairs(contents) do
         local name = string.sub(file, 1, -5);
         local data = TryLoadFile(path .. file);
         if data then
-            titleSet[name] = data;
+            masterList[name] = data;
             for catIndex,catData in pairs(data) do
                 for titleIndex, title in pairs(catData.Titles) do
                     local id = titleToId[title];
@@ -117,7 +118,20 @@ local function LoadCharacterData(name, id)
 end
 
 local function DumpTitles()
-    --First pass... titles that player is missing
+    local earned = T{};
+    local unearned = T{};
+    local unknown = T{};
+    for i = 1,2048 do
+        local status = playerData.Titles[i];
+        if status == true then
+            earned:append(i);
+        elseif status == false then
+            unearned:append(i);
+        elseif titleToNPC[i] then
+            unknown:append(i);
+        end
+    end
+
     local outPath = string.format('%sconfig/addons/titlecheck/', AshitaCore:GetInstallPath());
     if not ashita.fs.exists(outPath) then
         ashita.fs.create_directory(outPath);
@@ -125,70 +139,37 @@ local function DumpTitles()
     outPath = outPath .. string.format('%s_%u.txt', playerData.Name, playerData.Id);
 
     local outFile = io.open(outPath, 'w');
-    local count = 0;
-    local outData = T{};
-    for i = 1,2048 do
-        if playerData.Titles[i] == false then
-            outData:append(string.format('%u: %s\n', i, AshitaCore:GetResourceManager():GetString('titles', i):trimend('\x00')));
-            count = count + 1;
-        end
-    end
-    outFile:write(string.format('Missing Titles (%u)\n', count));
-    for _,line in ipairs(outData) do
-        outFile:write(line);
-    end
-    
-    --Second pass... titles that player knows..
-    count = 0;
-    outData = T{};
-    for i = 1,2048 do
-        if playerData.Titles[i] == true then
-            outData:append(string.format('%u: %s\n', i, AshitaCore:GetResourceManager():GetString('titles', i):trimend('\x00')));
-            count = count + 1;
-        end
-    end
-    
-    outFile:write(string.format('\nKnown Titles (%u)\n', count));
-    for _,line in ipairs(outData) do
-        outFile:write(line);
-    end
+    outFile:write(string.format("Summary:\nEarned: %u titles\nUnearned:%u titles\nUnverified: %u titles\n", #earned, #unearned, #unknown));
 
-    --Third pass... titles that aren't registered yet for the character
-    count = 0;
-    outData = T{};
-    local missingNPCs = T{};
-    for i = 1,2048 do
-        if (playerData.Titles[i] == nil) and (titleToNPC[i] ~= nil) then
-            for _,npc in ipairs(titleToNPC[i]) do
-                missingNPCs[npc] = true;
+    outFile:write('\nUnearned Titles:\n');
+    for _,titleId in ipairs(unearned) do
+        outFile:write(string.format('%u: %s\n', titleId, AshitaCore:GetResourceManager():GetString('titles', titleId):trimend('\x00')));
+    end
+    
+    outFile:write('\nEarned Titles:\n');
+    for _,titleId in ipairs(earned) do
+        outFile:write(string.format('%u: %s\n', titleId, AshitaCore:GetResourceManager():GetString('titles', titleId):trimend('\x00')));
+    end
+    
+    outFile:write('\nUnverified Titles:\n');
+    for _,titleId in ipairs(unknown) do
+        outFile:write(string.format('%u: %s (Check at: ', titleId, AshitaCore:GetResourceManager():GetString('titles', titleId):trimend('\x00')));
+        local npcs = titleToNPC[titleId];
+        table.sort(npcs);
+        for index,npc in ipairs(npcs) do
+            if index ~= 1 then
+                outFile:write(', ');
             end
-            
-            count = count + 1;
-            outData:append(string.format('%u: %s\n', i, AshitaCore:GetResourceManager():GetString('titles', i):trimend('\x00')));
+            if (index == #npcs) then
+                outFile:write('or ');
+            end
+            outFile:write(npc);            
         end
+        outFile:write(')\n');
     end
-    local sorted = T{};
-    for npc,_ in pairs(missingNPCs) do
-        sorted:append(npc);
-    end
-    table.sort(sorted);
-
-    
-    outFile:write(string.format('\nMissing Title Data (%u)\n', count));
-    for _,line in ipairs(outData) do
-        outFile:write(line);
-    end
-
-    if #sorted > 0 then
-        outFile:write('\nMissing title data is available at the following NPCs:\n');
-        print('Title data may be incomplete. Missing titles available at the following NPCs:');
-        for _,npc in ipairs(sorted) do
-            print(npc);
-            outFile:write(npc .. '\n');
-        end
-    end
-
     outFile:close();
+    print(string.format('Wrote title summary to %s.', outPath));
+    print(string.format("Earned: %u Unearned:%u Unverified: %u", #earned, #unearned, #unknown));
 end
 
 ashita.events.register('load', 'TitleCheck_load', function()
@@ -236,7 +217,6 @@ ashita.events.register('command', 'TitleCheck_HandleCommand', function (e)
     end
 
     if (args[1] == '/title') then
-
         if (args[2] == 'dump') then
             DumpTitles();
         end
@@ -256,17 +236,16 @@ ashita.events.register('packet_in', 'titlecheck_HandleIncomingPacket', function 
         end
     end
 
-    if (e.id == 0x033) then
-        if (forceVisible) then
-            for category = 1,6 do
-                ashita.bits.pack_be(e.data_modified_raw, 0, 0x4C + (category *4), 0, 32);
-            end
-        end
-        
+    if (e.id == 0x033) then        
         local entityIndex = struct.unpack('H', e.data, 0x08+1);
         local entityName = AshitaCore:GetMemoryManager():GetEntity():GetName(entityIndex);
-        local titleData = titleSet[entityName];
+        local titleData = masterList[entityName];
         if titleData then
+            if (forceVisible) then
+                for category = 1,6 do
+                    ashita.bits.pack_be(e.data_modified_raw, 0, 0x4C + (category *4), 0, 32);
+                end
+            end
             local utc_time_table = os.date("!*t");
             local utc_timestamp = os.time(utc_time_table);
             playerData.NPCs[entityName] = utc_timestamp;
@@ -282,7 +261,7 @@ ashita.events.register('packet_in', 'titlecheck_HandleIncomingPacket', function 
                                 if printEarned then
                                     print(chat.color1(2, string.format('%s: Earned', title)));
                                 end
-                            else
+                            elseif printUnearned then
                                 print(chat.color1(68, string.format('%s: Not Earned', title)));
                             end
 
