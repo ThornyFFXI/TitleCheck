@@ -10,3 +10,4 @@ I've included the method I used to generate the bard data files in the addon, in
 4. Exit the menu, talk again, and repeat for the next 5 categories, using the position in menu(1-6) and price.
 5. Once you've recorded all 6 categories, exit the menu and target the bard NPC.
 6. Type `/tr dump` and the NPC's data will be recorded and immediately ready for use.
+7. Reload the addon to incorporate new titles.
