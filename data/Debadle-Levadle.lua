@@ -29,7 +29,7 @@ return {
             [25] = "Quartet Captivator",
             [26] = "Boomy and Busty",
             [27] = "Weatherer of Brumal Climes",
-            [28] = "N/A",
+            [28] = "White Knight",
         },
     },
     [2] = T{
@@ -62,7 +62,7 @@ return {
             [25] = "Thousand-Year Traveler",
             [26] = "Good Dew-er",
             [27] = "Assistant Extraordinaire",
-            [28] = "N/A",
+            [28] = "Sauce Supreme",
         },
     },
     [3] = T{
@@ -95,7 +95,7 @@ return {
             [25] = "Gardener for the Ages",
             [26] = "Lagoon Explorer",
             [27] = "Servant to the Servant",
-            [28] = "N/A",
+            [28] = "Eternal Communer",
         },
     },
     [4] = T{

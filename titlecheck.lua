@@ -1,7 +1,7 @@
 addon.author   = 'Thorny';
 addon.name     = 'TitleCheck';
 addon.desc     = 'Prints missing titles..';
-addon.version  = '1.01';
+addon.version  = '1.02';
 
 require ('common');
 local chat = require('chat')
@@ -172,6 +172,31 @@ local function DumpTitles()
     print(string.format("Earned: %u Unearned:%u Unverified: %u", #earned, #unearned, #unknown));
 end
 
+local function ValidateTitles()
+    local foundTitles = {};
+    for npc,data in pairs(masterList) do
+        for category,catData in ipairs(data) do
+            for titleIndex, title in pairs(catData.Titles) do
+                local id = titleToId[title];
+                if id then
+                    foundTitles[id] = true;
+                elseif title ~= "N/A" then
+                    print(string.format("Failed to resolve ID for title: %s", title));
+                end
+            end
+        end
+    end
+    
+    for i = 1,2048 do
+        local res = AshitaCore:GetResourceManager():GetString('titles', i);
+        if res and res ~= '0' then
+            if foundTitles[i] ~= true then
+                print(string.format('No npc found for title: %s', res));
+            end
+        end
+    end
+end
+
 ashita.events.register('load', 'TitleCheck_load', function()
     for i = 1,2048 do
         local res = AshitaCore:GetResourceManager():GetString('titles', i);
@@ -219,6 +244,10 @@ ashita.events.register('command', 'TitleCheck_HandleCommand', function (e)
     if (args[1] == '/title') then
         if (args[2] == 'dump') then
             DumpTitles();
+        end
+        
+        if (args[2] == 'validate') then
+            ValidateTitles();
         end
 
         e.blocked = true;

@@ -128,7 +128,7 @@ return {
             [25] = "Vanquisher of Cowardice",
             [26] = "Vanquisher of Envy",
             [27] = "Vanquisher of Arrogance",
-            [28] = "N/A",
+            [28] = "Vanquisher of Rage",
         },
     },
     [5] = T{

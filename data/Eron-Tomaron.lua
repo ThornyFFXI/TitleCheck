@@ -128,7 +128,7 @@ return {
             [25] = "Blaze Marshaller",
             [26] = "Sirocco Tamer",
             [27] = "Fulmination Disruptor",
-            [28] = "N/A",
+            [28] = "Ruby Repulser",
         },
     },
     [5] = T{

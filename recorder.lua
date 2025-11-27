@@ -5,7 +5,10 @@ local function GetMenuData()
     local rawString = ashita.memory.read_string(pDialog, 2048):trimend('\x00');
     local question, options = string.match(rawString, "^(.-)\7\11(.*)$")
     local result = { Question=question, Options=T{}};
-    for opt in string.gmatch(options, "([^%z\7]+)\7") do
+    for opt in string.gmatch(options, "([^%z\7]+)\7?") do
+        if string.sub(opt, -2) == "\x7F\x31" then
+            opt = string.sub(opt, 1, -3);
+        end
         result.Options:append(opt);
     end
     

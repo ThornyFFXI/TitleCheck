@@ -62,7 +62,7 @@ return {
             [25] = "Preventer of Ragnarok",
             [26] = "Champion of Aht Urhgan",
             [27] = "Eternal Mercenary",
-            [28] = "N/A",
+            [28] = "Captain",
         },
     },
     [3] = T{
